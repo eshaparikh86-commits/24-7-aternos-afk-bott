@@ -6,8 +6,8 @@ First of all you need to change the ip in [config file](https://github.com/krush
 **Don't change the port**, you may change the rest of the stuff
 ```
 {
-	"ip":"yourip.aternos.me",
-	"port": "25565",
+	"ip":"praisebobby6789.aternos.me",
+	"port": "40770",
 	"name": "afk bot"
 }
 

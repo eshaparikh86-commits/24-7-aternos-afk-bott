@@ -5,9 +5,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
-    res.send("Minecraft AFK Bot is running!");
+    res.send("Bot is running!");
 });
 
 app.listen(PORT, () => {
-    console.log(`Web server running on port ${PORT}`);
+    console.log("Web server started on port", PORT);
 });

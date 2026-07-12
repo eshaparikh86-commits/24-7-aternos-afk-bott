@@ -1,6 +1,13 @@
-const express = require('express');
-const app = express();
-const port = 2323;
-app.get('/', (req, res) => res.send('Afk bot!'));
+const express = require("express");
 
-app.listen(port, () => console.log(`Afk bot is listening to http://localhost:${port}`));
+const app = express();
+
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+    res.send("Minecraft AFK Bot is running!");
+});
+
+app.listen(PORT, () => {
+    console.log(`Web server running on port ${PORT}`);
+});

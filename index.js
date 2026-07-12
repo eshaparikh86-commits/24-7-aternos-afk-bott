@@ -1,102 +1,119 @@
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception:', err);
+process.on("uncaughtException", (err) => {
+    console.error("Uncaught Exception:", err);
 });
 
-process.on('unhandledRejection', (reason) => {
-    console.error('Unhandled Rejection:', reason);
+process.on("unhandledRejection", (reason) => {
+    console.error("Unhandled Rejection:", reason);
 });
 
+const mineflayer = require("mineflayer");
+require("./keep_alive");
 
-const mineflayer = require('mineflayer');
-const fs = require('fs');
-const { keep_alive } = require("./keep_alive");
+// ===== Railway Environment Variables =====
+const host = process.env.IP;
+const username = process.env.NAME;
+const password = process.env.PASSWORD;
 
-let rawdata = fs.readFileSync('config.json');
-let data = JSON.parse(rawdata);
+// ===== Movement Variables =====
+let lasttime = -1;
+let moving = false;
+let connected = false;
 
-var lasttime = -1;
-var moving = 0;
-var connected = 0;
+const actions = ["forward", "back", "left", "right"];
+let lastaction;
 
-var actions = ['forward', 'back', 'left', 'right'];
-var lastaction;
-var pi = Math.PI;
+const moveinterval = 2;
+const maxrandom = 5;
 
-var moveinterval = 2;
-var maxrandom = 5;
+function createBot() {
+    console.log("Connecting...");
 
-const host = data.ip;
-const username = data.name;
-const password = data.password; // Add password in config.json
+    const bot = mineflayer.createBot({
+        host,
+        username
+    });
 
-const bot = mineflayer.createBot({
-    host: host,
-    username: username
-});
+    bot.on("login", () => {
+        console.log("Logged In");
+    });
 
-bot.on('login', () => {
-    console.log("Logged In");
-});
+    bot.on("spawn", () => {
+        console.log("Spawned");
+        connected = true;
 
-bot.on('spawn', () => {
-    connected = 1;
+        setTimeout(() => {
+            bot.chat(`/register ${password} ${password}`);
+        }, 3000);
 
-    // Wait a few seconds before sending auth commands
-    setTimeout(() => {
-        bot.chat(`/register ${password} ${password}`);
-    }, 3000);
+        setTimeout(() => {
+            bot.chat(`/login ${password}`);
+        }, 6000);
+    });
 
-    setTimeout(() => {
-        bot.chat(`/login ${password}`);
-    }, 6000);
-});
+    bot.on("messagestr", (message) => {
+        console.log(message);
 
-bot.on('messagestr', (message) => {
-    console.log(message);
+        const msg = message.toLowerCase();
 
-    const msg = message.toLowerCase();
+        if (msg.includes("register")) {
+            bot.chat(`/register ${password} ${password}`);
+        }
 
-    if (msg.includes("register")) {
-        bot.chat(`/register ${password} ${password}`);
-    }
+        if (msg.includes("login")) {
+            bot.chat(`/login ${password}`);
+        }
+    });
 
-    if (msg.includes("login")) {
-        bot.chat(`/login ${password}`);
-    }
-});
+    bot.on("time", () => {
+        if (!connected) return;
 
-bot.on('time', function () {
-    if (connected < 1) return;
+        if (lasttime < 0) {
+            lasttime = bot.time.age;
+            return;
+        }
 
-    if (lasttime < 0) {
-        lasttime = bot.time.age;
-    } else {
-        var randomadd = Math.random() * maxrandom * 20;
-        var interval = moveinterval * 20 + randomadd;
+        const interval = moveinterval * 20 + Math.random() * maxrandom * 20;
 
         if (bot.time.age - lasttime > interval) {
+
             if (moving) {
                 bot.setControlState(lastaction, false);
-                moving = 0;
+                moving = false;
             } else {
-                var yaw = Math.random() * pi - (0.5 * pi);
-                var pitch = Math.random() * pi - (0.5 * pi);
 
-                bot.look(yaw, pitch, false);
+                const yaw = (Math.random() - 0.5) * Math.PI;
+                const pitch = (Math.random() - 0.5) * Math.PI;
+
+                bot.look(yaw, pitch, true);
 
                 lastaction = actions[Math.floor(Math.random() * actions.length)];
+
                 bot.setControlState(lastaction, true);
 
-                moving = 1;
+                moving = true;
+
                 bot.activateItem();
             }
 
             lasttime = bot.time.age;
         }
-    }
-});
+    });
 
-bot.on('error', console.log);
-bot.on('end', () => {
-    console.log("Disconnected from server.");
-});
+    bot.on("kicked", (reason) => {
+        console.log("Kicked:", reason);
+    });
+
+    bot.on("error", (err) => {
+        console.log("Error:", err.message);
+    });
+
+    bot.on("end", () => {
+        console.log("Disconnected. Reconnecting in 5 seconds...");
+        connected = false;
+        lasttime = -1;
+
+        setTimeout(createBot, 5000);
+    });
+}
+
+createBot();

@@ -1,16 +1,12 @@
 {
   "name": "afkbot",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
-  "author": "krushna06",
-  "license": "ISC",
   "dependencies": {
-    "config": "^3.3.3",
-    "fs": "0.0.1-security",
+    "express": "^5.1.0",
     "mineflayer": "^2.37.1"
   }
 }

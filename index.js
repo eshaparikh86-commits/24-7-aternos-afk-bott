@@ -1,3 +1,12 @@
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled Rejection:', reason);
+});
+
+
 const mineflayer = require('mineflayer');
 const fs = require('fs');
 const { keep_alive } = require("./keep_alive");

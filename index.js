@@ -19,13 +19,13 @@ function createBot() {
     });
 
     bot.on("login", () => {
-        console.log("Logged into server.");
+        console.log("Connected to server.");
     });
 
     bot.on("spawn", () => {
         console.log("Spawned.");
 
-        // Register (ignored if already registered)
+        // Register if needed
         setTimeout(() => {
             bot.chat(`/register ${PASSWORD} ${PASSWORD}`);
         }, 3000);
@@ -35,10 +35,7 @@ function createBot() {
             bot.chat(`/login ${PASSWORD}`);
         }, 6000);
 
-        // Start anti-AFK after login
-        setTimeout(() => {
-            startAntiAFK(bot);
-        }, 10000);
+        console.log("Waiting in AFK chamber...");
     });
 
     bot.on("messagestr", (msg) => {
@@ -60,64 +57,13 @@ function createBot() {
     });
 
     bot.on("error", (err) => {
-        console.log("Error:", err.message);
+        console.log("Error:", err);
     });
 
     bot.on("end", () => {
         console.log("Disconnected. Reconnecting in 5 seconds...");
         setTimeout(createBot, 5000);
     });
-
-    return bot;
-}
-
-function startAntiAFK(bot) {
-
-    const actions = ["forward", "back", "left", "right"];
-
-    setInterval(() => {
-
-        if (!bot.entity) return;
-
-        const action = actions[Math.floor(Math.random() * actions.length)];
-
-        // Random look direction
-        bot.look(
-            Math.random() * Math.PI * 2,
-            (Math.random() - 0.5) * Math.PI / 2,
-            true
-        );
-
-        // Start moving
-        bot.setControlState(action, true);
-
-        // Jump
-        bot.setControlState("jump", true);
-
-        // Swing arm
-        bot.swingArm();
-
-        // Use held item if available
-        try {
-            bot.activateItem();
-        } catch (e) {}
-
-        console.log("Anti-AFK action:", action);
-
-        // Stop after 2 seconds
-        setTimeout(() => {
-            bot.setControlState(action, false);
-            bot.setControlState("jump", false);
-        }, 2000);
-
-    }, 7000);
-
-    // Show position every 15 seconds
-    setInterval(() => {
-        if (bot.entity) {
-            console.log("Position:", bot.entity.position);
-        }
-    }, 15000);
 }
 
 createBot();

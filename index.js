@@ -9,94 +9,55 @@ const PORT = Number(process.env.MC_PORT) || 25565;
 const USERNAME = process.env.NAME;
 const PASSWORD = process.env.PASSWORD;
 
-let bot;
-
 function createBot() {
-    console.log("Connecting to:", HOST + ":" + PORT);
+    console.log(`Connecting to ${HOST}:${PORT}`);
 
-    bot = mineflayer.createBot({
+    const bot = mineflayer.createBot({
         host: HOST,
         port: PORT,
         username: USERNAME
     });
 
-    let connected = false;
-    let moving = false;
-    let lastTime = -1;
-    let lastAction = "";
-
-    const actions = ["forward", "back", "left", "right"];
-
     bot.on("login", () => {
-        console.log("Logged In");
+        console.log("Logged into server.");
     });
 
     bot.on("spawn", () => {
-        console.log("Spawned");
-        connected = true;
+        console.log("Spawned.");
 
+        // Register (ignored if already registered)
         setTimeout(() => {
             bot.chat(`/register ${PASSWORD} ${PASSWORD}`);
         }, 3000);
 
+        // Login
         setTimeout(() => {
             bot.chat(`/login ${PASSWORD}`);
         }, 6000);
+
+        // Start anti-AFK after login
+        setTimeout(() => {
+            startAntiAFK(bot);
+        }, 10000);
     });
 
     bot.on("messagestr", (msg) => {
         console.log(msg);
 
-        const m = msg.toLowerCase();
+        const text = msg.toLowerCase();
 
-        if (m.includes("register")) {
+        if (text.includes("register")) {
             bot.chat(`/register ${PASSWORD} ${PASSWORD}`);
         }
 
-        if (m.includes("login")) {
+        if (text.includes("login")) {
             bot.chat(`/login ${PASSWORD}`);
         }
     });
 
-    bot.on("time", () => {
-        if (!connected) return;
-
-        if (lastTime < 0) {
-            lastTime = bot.time.age;
-            return;
-        }
-
-        const interval = 40 + Math.random() * 100;
-
-        if (bot.time.age - lastTime > interval) {
-
-            if (moving) {
-
-                bot.setControlState(lastAction, false);
-                moving = false;
-
-            } else {
-
-                const yaw = (Math.random() - 0.5) * Math.PI;
-                const pitch = (Math.random() - 0.5) * Math.PI;
-
-                bot.look(yaw, pitch, true);
-
-                lastAction = actions[Math.floor(Math.random() * actions.length)];
-
-                bot.setControlState(lastAction, true);
-
-                moving = true;
-
-                bot.activateItem();
-
-            }
-
-            lastTime = bot.time.age;
-        }
+    bot.on("kicked", (reason) => {
+        console.log("Kicked:", reason);
     });
-
-    bot.on("kicked", console.log);
 
     bot.on("error", (err) => {
         console.log("Error:", err.message);
@@ -106,6 +67,57 @@ function createBot() {
         console.log("Disconnected. Reconnecting in 5 seconds...");
         setTimeout(createBot, 5000);
     });
+
+    return bot;
+}
+
+function startAntiAFK(bot) {
+
+    const actions = ["forward", "back", "left", "right"];
+
+    setInterval(() => {
+
+        if (!bot.entity) return;
+
+        const action = actions[Math.floor(Math.random() * actions.length)];
+
+        // Random look direction
+        bot.look(
+            Math.random() * Math.PI * 2,
+            (Math.random() - 0.5) * Math.PI / 2,
+            true
+        );
+
+        // Start moving
+        bot.setControlState(action, true);
+
+        // Jump
+        bot.setControlState("jump", true);
+
+        // Swing arm
+        bot.swingArm();
+
+        // Use held item if available
+        try {
+            bot.activateItem();
+        } catch (e) {}
+
+        console.log("Anti-AFK action:", action);
+
+        // Stop after 2 seconds
+        setTimeout(() => {
+            bot.setControlState(action, false);
+            bot.setControlState("jump", false);
+        }, 2000);
+
+    }, 7000);
+
+    // Show position every 15 seconds
+    setInterval(() => {
+        if (bot.entity) {
+            console.log("Position:", bot.entity.position);
+        }
+    }, 15000);
 }
 
 createBot();
